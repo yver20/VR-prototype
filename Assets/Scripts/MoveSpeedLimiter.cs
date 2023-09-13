@@ -8,7 +8,12 @@ public class MoveSpeedLimiter : MonoBehaviour
 {
     private bool controllersChecked = false;
     private bool controllersAssigned = false;
+    private bool holdingAThing;
     private bool tempCheck = false;
+
+    public float moveSpeedThreshold;
+    public float moveSpeedMax;
+    public float moveSpeedMultiplier;
 
     public GameObject locomotionSystem;
     
@@ -22,6 +27,7 @@ public class MoveSpeedLimiter : MonoBehaviour
     {
         ControllerCountEnsurance();
         locomotionSystem = GameObject.Find("Locomotion System");
+        //devnote: lol, didn't even bother to check if this was being found. good thing I got this right first try XD.
     }
 
     void ControllerCheck() //checks what controllers are connected
@@ -88,26 +94,62 @@ public class MoveSpeedLimiter : MonoBehaviour
 
         
 
-        if (controllersAssigned && (!tempCheck))
+        /*if (controllersAssigned && (!tempCheck))
         {
             Debug.Log("[normal check] our left controller should be: " + leftController.characteristics.ToString() + " And our right controller should be: " + rightController.characteristics.ToString());
             tempCheck = true;
-        }
+        }*/
 
         leftController.TryGetFeatureValue(CommonUsages.grip, out float triggerValue);
         if (triggerValue > 0.1f)
         {
+            if (!holdingAThing)
+            {
+                GetComponent<XRRayInteractor>().translateSpeed *= 3;
+                holdingAThing = true;
+            }
+            
             locomotionSystem.GetComponent<ActionBasedSnapTurnProvider>().enabled = false;
         }
         else
         {
             locomotionSystem.GetComponent<ActionBasedSnapTurnProvider>().enabled = true;
+            holdingAThing = false;
         }
 
-        /*leftController.TryGetFeatureValue(CommonUsages.primary2DAxis, out Vector2 Primary2DAxisValue);
-        if (Primary2DAxisValue != Vector2.zero)
+        leftController.TryGetFeatureValue(CommonUsages.primary2DAxis, out Vector2 Primary2DAxisValue);
+        if (holdingAThing)
         {
-            Debug.Log("primary touchpad: " + Primary2DAxisValue);
-        }*/ //example stick/touchpad input handle
+            if (Primary2DAxisValue == Vector2.zero)
+            {
+                return;
+            }
+            if (Primary2DAxisValue.y >= 0.1f)
+            {
+                if (GetComponent<XRRayInteractor>().translateSpeed < moveSpeedThreshold)
+                {
+                    GetComponent<XRRayInteractor>().translateSpeed = 0;
+                }
+                else if (GetComponent<XRRayInteractor>().translateSpeed >= moveSpeedThreshold)
+                {
+                    GetComponent<XRRayInteractor>().translateSpeed *= moveSpeedMultiplier;//MAGIC NUMBERS
+                }
+                 
+            }
+            else if (Primary2DAxisValue.y < -0.1f)
+            {
+                if (GetComponent<XRRayInteractor>().translateSpeed == 0)
+                {
+                    GetComponent<XRRayInteractor>().translateSpeed = moveSpeedThreshold;
+                }
+                else if (GetComponent<XRRayInteractor>().translateSpeed < moveSpeedMax)
+                {
+                    GetComponent<XRRayInteractor>().translateSpeed /= moveSpeedMultiplier; //MAGIC NUMBERS
+                }
+                
+            }
+            
+        }
+        //Debug.Log("primary touchpad: " + Primary2DAxisValue);
     }
 }
