@@ -2,12 +2,15 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.XR;
+using UnityEngine.XR.Interaction.Toolkit;
 
 public class MoveSpeedLimiter : MonoBehaviour
 {
     private bool controllersChecked = false;
     private bool controllersAssigned = false;
     private bool tempCheck = false;
+
+    public GameObject locomotionSystem;
     
     private InputDevice leftController;
     private InputDevice rightController;
@@ -18,6 +21,7 @@ public class MoveSpeedLimiter : MonoBehaviour
     void Start()
     {
         ControllerCountEnsurance();
+        locomotionSystem = GameObject.Find("Locomotion System");
     }
 
     void ControllerCheck() //checks what controllers are connected
@@ -90,5 +94,20 @@ public class MoveSpeedLimiter : MonoBehaviour
             tempCheck = true;
         }
 
+        leftController.TryGetFeatureValue(CommonUsages.grip, out float triggerValue);
+        if (triggerValue > 0.1f)
+        {
+            locomotionSystem.GetComponent<ActionBasedSnapTurnProvider>().enabled = false;
+        }
+        else
+        {
+            locomotionSystem.GetComponent<ActionBasedSnapTurnProvider>().enabled = true;
+        }
+
+        /*leftController.TryGetFeatureValue(CommonUsages.primary2DAxis, out Vector2 Primary2DAxisValue);
+        if (Primary2DAxisValue != Vector2.zero)
+        {
+            Debug.Log("primary touchpad: " + Primary2DAxisValue);
+        }*/ //example stick/touchpad input handle
     }
 }
